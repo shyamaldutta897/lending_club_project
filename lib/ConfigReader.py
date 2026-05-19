@@ -36,4 +36,3 @@ def get_pyspark_config(env):
     return pyspark_conf
 
 
-
