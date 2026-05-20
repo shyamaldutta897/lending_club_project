@@ -13,4 +13,5 @@ def write(df: DataFrame,
     if partitionBy:
         writer=writer.partitionBy(*partitionBy)
     writer.save(output_path)
+
         
