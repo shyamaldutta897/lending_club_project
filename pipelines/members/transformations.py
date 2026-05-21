@@ -1,5 +1,5 @@
-from framework.readers.data_reader import read_members_data
-from framework.utils.spark_session import create_spark_session
+from framework.readers.data_reader_generic import read
+from framework.session.spark_session import create_spark_session
 from framework.config.config_reader import get_app_config, get_pyspark_config
 
 from pyspark.sql.functions import *

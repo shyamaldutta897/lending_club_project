@@ -1,5 +1,5 @@
 from framework.config.config_reader import get_app_config
-from framework.utils.spark_session import create_spark_session
+from framework.session.spark_session import create_spark_session
 
 from schemas.members_schema import get_members_schema
 from schemas.loans_schema import get_loan_details_schema
