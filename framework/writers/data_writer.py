@@ -5,6 +5,7 @@ def write(df: DataFrame,
           mode:str,
           partitionBy:list,
           output_path:str):
+    print(f'Writing to location {output_path}')
     writer= df.write\
         .format(file_format)\
         .mode(mode)

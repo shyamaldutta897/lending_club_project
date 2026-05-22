@@ -1,0 +1,125 @@
+[
+
+        {
+            "rule_id":"R1",
+            "tables":["member_details",
+                      "loan_details",
+                      "loan_repayment",
+                      "loan_defaulters"],
+            "columns":["annual_income",
+                       "total_high_credit_limit",
+                       "join_annual_income",
+                       "loan_amount",
+                       "funded_amount",
+                       "interest_rate",
+                       "installment",
+                       "total_principal_received",
+                       "total_interest_received",
+                       "total_late_fee_received",
+                       "total_payment",
+                       "last_payment_amount",
+                       "delinq_amount"],
+            "type":"float_check",
+            "check":"Field data type is not float",
+            "threshold":0.98 
+        },
+
+        {   "rule_id":"R2",
+            "tables":["loan_defaulters"],
+            "columns":["delinq_2_years ",
+                       "public_record ",
+                       "public_record_bankruptcies ",
+                       "inquiry_last_6_months ",
+                       "months_since_last_delinq ",
+                       "months_since_last_record "],
+            "type":"int_check",
+            "check":"Field data type is not int",
+            "threshold":0.98 
+        },
+
+        {   "rule_id":"R3",
+            "tables":["member_details"],
+            "columns":["subgrade"],
+            "type":"field_value_check",
+            "check":"Accpeted length of field value is 2",
+            "threshold":0.98 
+        },
+
+         {   "rule_id":"R4",
+            "tables":["member_details"],
+            "columns":["grade"],
+            "type":"grade_check",
+            "check":"Accpeted length of field value is 1",
+            "threshold":0.98 
+        },
+
+        {   "rule_id":"R5",
+            "tables":["member_details"],
+            "columns":["zip_code"],
+            "type":"zip_code_check",
+            "check":"Accpeted length of field value is 5",
+            "threshold":0.98 
+        },
+
+        {   "rule_id":"R6",
+            "tables":["member_details","loan_details","loan_defaulters"],
+            "columns":["member_id"],
+            "type":"member_id_duplication",
+            "check":"Member ID count shouldn't be more than 1 for a member",
+            "threshold":0.98 
+        },
+
+        {   "rule_id":"R7",
+            "tables":["loan_details"],
+            "columns":["purpose"],
+            "allowed_values":["debt_consolidation","credit_card","home_improvement","major_purchase","medical","small_business","car","vacation","moving","house","wedding","renewable_energy","educational","other"],
+            "type":"allowed_values_check",
+            "check":"Member ID count shouldn't be more than 1 for a member",
+            "threshold":0.98 
+        }, 
+
+         {   "rule_id":"R8",
+            "tables":["loan_repayment"],
+            "columns":["total_payment"],
+            "dependent_columns":["total_principal_received","total_interest_received","total_late_fee_received"],
+            "type":"calculation_check",
+            "check":"Total payment amount is not summing up to principal received + interest received + late fee received",
+            "threshold":0.98 
+        }, 
+
+        {   "rule_id":"R9",
+            "tables":["loan_repayment"],
+            "columns":["last_payment_date","next_payment_date"],
+            "type":"string_check",
+            "check":"Value should be in string and in the format mmm-yyyy",
+            "threshold":0.98 
+        },
+
+         {  "rule_id":"R10",
+            "tables":["member_details","loan_details","loan_repayment"],
+            "columns":["annual_income", 
+                       "loan_amount", 
+                       "funded_amount", 
+                       "term", 
+                       "interest_rate", 
+                       "installment", 
+                       "issue_month_year", 
+                       "loan_status", 
+                       "purpose", 
+                       "title",
+                       "total_principal_received", 
+                       "total_interest_received", 
+                       "total_late_fee_received", 
+                       "total_payment", 
+                       "last_payment_amount",
+                       "delinq_2_years ",
+                       "public_record ",
+                       "public_record_bankruptcies ",
+                       "inquiry_last_6_months ",
+                       "months_since_last_delinq ",
+                       "months_since_last_record "],
+            "type":"null_check",
+            "check":"Value should not be null",
+            "threshold":0.98 
+        }
+]

@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 from framework.config.config_reader import get_pyspark_config
+from configs.calculation_config import custom_spark_confs
 import os
 
 os.environ["HADOOP_HOME"] = r"C:\hadoop"
@@ -10,9 +11,13 @@ def create_spark_session(env):
     builder = SparkSession.builder \
         .config(conf=get_pyspark_config(env))\
         .config("spark.hadoop.io.native.lib.available", "false")
+
+    for key,val in custom_spark_confs.items():
+        builder=builder.config(key,val)
     
     if env == "LOCAL":
         builder = builder.master("local[2]")
     else:
         builder = builder.enableHiveSupport()
+        
     return builder.getOrCreate()
