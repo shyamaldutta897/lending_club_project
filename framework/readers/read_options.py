@@ -1,13 +1,35 @@
-csv_option={'header':'true', 'inferSchema':'false'}
-json_option={'multiline':'true', 'inferSchema':'false'}
-parquet_option={}
+"""
+Format-specific read options for different data source types.
+Used by the generic data reader to configure Spark's read operations.
+"""
 
-def get_read_options(format:str):
-    if format=="csv":
+# CSV read options: header row present, don't infer schema (use explicit schema instead)
+csv_option = {'header': 'true', 'inferSchema': 'false'}
+
+# JSON read options: support multi-line JSON objects, explicit schema required
+json_option = {'multiline': 'true', 'inferSchema': 'false'}
+
+# Parquet read options: parquet format is self-describing, no additional options needed
+parquet_option = {}
+
+def get_read_options(format: str):
+    """
+    Get format-specific read options for the requested data type.
+    
+    Args:
+        format (str): Data format - 'csv', 'json', or 'parquet'
+        
+    Returns:
+        dict: Format-specific options for Spark read operation
+        
+    Raises:
+        ValueError: If the format is not supported
+    """
+    if format == "csv":
         return csv_option
-    elif format=="json":
+    elif format == "json":
         return json_option
-    elif format=="parquet":
+    elif format == "parquet":
         return parquet_option
     else:
         raise ValueError(f"Unsupported format: {format}")

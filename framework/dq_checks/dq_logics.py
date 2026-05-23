@@ -1,7 +1,10 @@
 from pyspark.sql.functions import col, expr, length, to_date, lit
 
+# Individual validation functions for different data quality rules
+# Each returns a dictionary with validation results (field name, check type, row counts, failure %)
 
 def float_check(df, column):
+    """Validate that a field can be cast to float type."""
     total = df.count()
     failed = df.filter((col(column).isNotNull()) & col(column).cast('float').isNull()).count()
 
@@ -15,6 +18,7 @@ def float_check(df, column):
 
 
 def int_check(df, column):
+    """Validate that a field can be cast to integer type."""
     total = df.count()
     failed = df.filter((col(column).isNotNull()) & col(column).cast('int').isNull()).count()
 
@@ -28,6 +32,7 @@ def int_check(df, column):
 
 
 def field_value_check(df, column):
+    """Validate that field values don't exceed 2 characters (e.g., state codes)."""
     total = df.count()
     failed = df.filter((col(column).isNotNull()) & (length(col(column)) > 2)).count()
 
@@ -41,6 +46,7 @@ def field_value_check(df, column):
 
 
 def grade_check(df, column):
+    """Validate that grade field is exactly 1 character (A-G)."""
     total = df.count()
     failed = df.filter((col(column).isNotNull()) & (length(col(column)) > 1)).count()
 
@@ -54,6 +60,7 @@ def grade_check(df, column):
 
 
 def zip_code_check(df, column):
+    """Validate that zip code field is exactly 5 characters."""
     total = df.count()
     failed = df.filter((col(column).isNotNull()) & (length(col(column)) != 5)).count()
 
@@ -67,6 +74,7 @@ def zip_code_check(df, column):
 
 
 def member_id_duplication(df, column):
+    """Validate that member IDs are unique (no duplicates)."""
     total = df.count()
     dup = df.groupBy(column).agg(expr('count(*)').alias('count')).filter(col('count') > 1)
     failed = dup.count()
@@ -81,6 +89,7 @@ def member_id_duplication(df, column):
 
 
 def allowed_values_check(df, column, allowed_values):
+    """Validate that field contains only values from a predefined list."""
     total = df.count()
     failed = df.filter(col(column).isNotNull() & ~col(column).isin(allowed_values)).count()
 
@@ -94,6 +103,7 @@ def allowed_values_check(df, column, allowed_values):
 
 
 def calculation_check(df, column, dependent_columns):
+    """Validate that a derived field equals the sum of its dependent columns."""
     total = df.count()
     failed = df.filter(col(column) != expr(" + ".join(dependent_columns))).count()
 
@@ -107,6 +117,7 @@ def calculation_check(df, column, dependent_columns):
 
 
 def string_check(df, column):
+    """Validate that a string field is in valid date format (MMM-yyyy)."""
     total = df.count()
     failed = df.filter((col(column).isNotNull()) & to_date(col(column), 'MMM-yyyy').isNull()).count()
 
@@ -118,21 +129,29 @@ def string_check(df, column):
         "percentage": failed / total if total else 0
     }
 
-def null_check(df,column):
-    total=df.count()
-    df_check=df.filter(col(column).isNull())
-    failed=df_check.count()
+def null_check(df, column):
+    """Validate that a field does not contain null/missing values."""
+    total = df.count()
+    df_check = df.filter(col(column).isNull())
+    failed = df_check.count()
 
-    return{
-        "field":column,
-        "check":"Null check",
-        "total_rows":total,
-        "failed_rows":failed,
-        "percentage":failed/total if total else 0
+    return {
+        "field": column,
+        "check": "Null check",
+        "total_rows": total,
+        "failed_rows": failed,
+        "percentage": failed / total if total else 0
     }
 
 
+# Helper functions for rule processing and failure identification
+
 def _failed_rows_for_column(df, column, rule):
+    """
+    Extract rows that fail a specific validation rule for a given column.
+    
+    Returns the filtered DataFrame with only records that violate the rule.
+    """
     rule_type = rule["type"]
 
     if rule_type == "float_check":
@@ -172,10 +191,12 @@ def _failed_rows_for_column(df, column, rule):
 
 
 def _existing_rule_columns(df, rule):
+    """Return only the columns from the rule that actually exist in the DataFrame."""
     return [c for c in rule.get("columns", []) if c in df.columns]
 
 
 def _empty_detailed_failures(df):
+    """Create an empty DataFrame with the expected failure report schema."""
     empty = df.limit(0)
     empty = empty.withColumn("rule_id", lit(None))
     empty = empty.withColumn("check_type", lit(None))
@@ -185,6 +206,12 @@ def _empty_detailed_failures(df):
 
 
 def get_failed_rows_for_rule(df, rule):
+    """
+    Find all rows that fail a specific validation rule.
+    
+    Applies the rule to all its columns and returns a deduplicated DataFrame
+    of records that violated at least one check.
+    """
     failed = None
     for column in _existing_rule_columns(df, rule):
         failed_rows = _failed_rows_for_column(df, column, rule)
@@ -196,9 +223,16 @@ def get_failed_rows_for_rule(df, rule):
 
 
 def get_failed_rows_with_details(df, rule):
+    """
+    Find all rows that fail a validation rule, with detailed failure information.
+    
+    Adds metadata columns (rule ID, check type, description, failed column) to enable
+    root cause analysis and data remediation efforts.
+    """
     failed = None
     for column in _existing_rule_columns(df, rule):
         failed_rows = _failed_rows_for_column(df, column, rule)
+        # Annotate failure with rule details for investigation
         failed_rows = failed_rows.withColumn("rule_id", lit(rule.get("rule_id", "")))
         failed_rows = failed_rows.withColumn("check_type", lit(rule.get("type", "")))
         failed_rows = failed_rows.withColumn("check_description", lit(rule.get("check", "")))

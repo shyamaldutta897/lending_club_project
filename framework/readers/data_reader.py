@@ -7,9 +7,17 @@ from schemas.loan_repayment_schema import get_loan_repayment_schema
 from schemas.loan_defaulters_schema import get_loan_defaulters_schema
 
 def read_members_data(spark, env):
-
+    """
+    Read member profile data from CSV.
+    
+    Args:
+        spark: Spark session
+        env: Environment name for config lookup
+        
+    Returns:
+        DataFrame: Member profiles with schema validation applied
+    """
     conf = get_app_config(env)
-
     members_file_path = conf["members.file.path"]
 
     return spark.read \
@@ -19,9 +27,17 @@ def read_members_data(spark, env):
         .load(members_file_path)
 
 def read_loans_data(spark, env):
-
+    """
+    Read loan detail data from CSV.
+    
+    Args:
+        spark: Spark session
+        env: Environment name for config lookup
+        
+    Returns:
+        DataFrame: Loan details with schema validation applied
+    """
     conf = get_app_config(env)
-
     loans_file_path = conf["loans.file.path"]
 
     return spark.read \
@@ -31,9 +47,17 @@ def read_loans_data(spark, env):
         .load(loans_file_path)
 
 def read_loan_repayments_data(spark, env):
-
+    """
+    Read loan repayment and payment history data from CSV.
+    
+    Args:
+        spark: Spark session
+        env: Environment name for config lookup
+        
+    Returns:
+        DataFrame: Payment history with schema validation applied
+    """
     conf = get_app_config(env)
-
     repayments_file_path = conf["loan_repayment.file.path"]
 
     return spark.read \
@@ -43,9 +67,17 @@ def read_loan_repayments_data(spark, env):
         .load(repayments_file_path)
 
 def read_loan_defaulters_data(spark, env):
-
+    """
+    Read loan defaulter and credit risk data from CSV.
+    
+    Args:
+        spark: Spark session
+        env: Environment name for config lookup
+        
+    Returns:
+        DataFrame: Credit risk indicators with schema validation applied
+    """
     conf = get_app_config(env)
-
     defaulters_file_path = conf["loan_defaulters.file.path"]
 
     return spark.read \
@@ -53,4 +85,3 @@ def read_loan_defaulters_data(spark, env):
         .schema(get_loan_defaulters_schema()) \
         .option("header", "true") \
         .load(defaulters_file_path)
-
