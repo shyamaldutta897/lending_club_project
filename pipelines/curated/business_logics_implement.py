@@ -1,3 +1,15 @@
+"""
+Loan Scoring Business Logic Module
+
+This module implements the three-dimensional loan risk scoring model:
+1. Payment History Score (20% weight) - How reliably has the borrower paid?
+2. Defaulter History Score (45% weight) - What's their credit risk track record?
+3. Financial Health Score (35% weight) - What's their current financial position?
+
+Each function creates a SQL temporary view with intermediate scores that feed into
+the next stage, creating a chainable pipeline of transformations.
+"""
+
 # from configs.calculation_config import custom_spark_confs as params
 # from framework.session.spark_session import create_spark_session
 # from framework.config.config_reader import get_app_config,get_pyspark_config
@@ -21,7 +33,25 @@
 
 
 def create_ph_pts_view(spark, params):
-    df=spark.sql( f"""
+    """
+    DIMENSION 1: Payment History Scoring (20% weight)
+    
+    Evaluates how consistently the borrower has paid by scoring:
+    1. Last Payment Score: How much was the most recent payment?
+       - <50% of installment = 100 pts (very bad)
+       - 50-100% of installment = 100 pts (very bad)
+       - Exactly 100% = 500 pts (good)
+       - 100-150% = 650 pts (very good)
+       - >150% = 800 pts (excellent)
+    
+    2. Total Payment Score: How much total has been repaid?
+       - 0% funded = 0 pts (unacceptable)
+       - 0-50% of funded = 500 pts (good)
+       - 50%+ of funded = 650 pts (very good)
+    
+    Creates temp view: ph_pts (payment history points)
+    """
+    df = spark.sql(f"""
     SELECT c.member_id,
       CASE
         WHEN p.last_payment_amount < (c.installment * 0.5) THEN {params['lending_project.very_bad_rated_pts']}
@@ -43,7 +73,30 @@ def create_ph_pts_view(spark, params):
     df.createOrReplaceTempView("ph_pts")
     return df
 
-def create_ldh_ph_df_view(spark,params):
+def create_ldh_ph_df_view(spark, params):
+    """
+    DIMENSION 2: Defaulter History Scoring (45% weight) - HIGHEST WEIGHT
+    
+    Evaluates credit risk indicators from borrower's past:
+    1. Delinquency Score: How many times have they been late in past 2 years?
+       - 0 delinquencies = 800 pts (excellent)
+       - 1-2 delinquencies = 250 pts (bad)
+       - 3-5 delinquencies = 100 pts (very bad)
+       - 5+ delinquencies = 750 pts (unacceptable)
+    
+    2. Public Records Score: Any public record issues?
+    3. Bankruptcy Score: Any bankruptcy history?
+    4. Recent Inquiry Score: How many hard inquiries in past 6 months?
+       - 0 inquiries = 800 pts (excellent)
+       - 1-2 inquiries = 250 pts (bad)
+       - 3-5 inquiries = 100 pts (very bad)
+       - 5+ inquiries = 0 pts (unacceptable)
+    
+    This dimension receives 45% weight because past credit problems are the
+    strongest predictor of future loan default.
+    
+    Creates temp view: ldh_ph_pts (defaulter/delinquency + payment history points)
+    """
     df = spark.sql(f"""
     SELECT p.*, 
     CASE 
@@ -76,7 +129,7 @@ def create_ldh_ph_df_view(spark,params):
     """)
 
     df.createOrReplaceTempView('ldh_ph_pts')
-    return df 
+    return df
 
 def create_fh_ldh_ph_df_view(spark,params):
     df=spark.sql(f"""
@@ -141,7 +194,8 @@ def create_fh_ldh_ph_df_view(spark,params):
 
 
 def create_loan_score_view(spark):
-    loan_score= spark.sql("""
+    """Calculate composite loan score combining all three dimensions."""
+    loan_score = spark.sql("""
                 with loan_score_init as(
                   SELECT member_id, 
                 ((last_payment_pts + total_payment_pts) * 0.20) AS payment_history_pts, 
@@ -156,7 +210,7 @@ def create_loan_score_view(spark):
                 from loan_score_init
                 """)
     loan_score.createOrReplaceTempView("loan_score_eval")
-    return loan_score 
+    return loan_score
 
 
 def loan_score_final_view(spark,params):
