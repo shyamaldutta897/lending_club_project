@@ -18,7 +18,7 @@ options=get_read_options("csv")
 
 df = read(spark, "csv", file_path, schema, options)
 
-df_check=df.select('member_id_custom', 'delinq_2_years')\
+df_check=df.select('member_id', 'delinq_2_years')\
            .withColumn('delinq_2yrs_check',
                        when(col('delinq_2_years').isNull(), 'actual null')\
                        .when (col('delinq_2_years').cast('int').isNull(), 'garbage value')
