@@ -520,6 +520,25 @@ spark.executor.memory = 2g
 spark.driver.memory = 2g
 ```
 
+### Logging Configuration (`configs/log4j2.properties`)
+
+The project uses Log4j2 for runtime logging. The Spark session builder is configured to point to a repository-level Log4j2 configuration file so logs are available when running pipelines locally.
+
+- **Config file**: `configs/log4j2.properties` contains appenders, logger levels and the root logger. Edit this file to change logging levels or add appenders (console/file).
+- **How Spark loads it**: `framework/session/spark_session.py` sets the JVM property `-Dlog4j2.configurationFile` to the `file:///...` URI for the config file. This ensures Windows paths (including spaces) are handled correctly.
+- **Runtime usage**: Use the provided logger wrapper in your pipelines:
+
+```python
+from framework.logger.logger_file import Log4j
+logger = Log4j(spark)
+logger.info('Created Spark session')
+```
+
+- **Tips**:
+   - If you don't see log messages, confirm `configs/log4j2.properties` exists and is readable.
+   - Change the application logger level by editing the `logger.app.level` (example: `info`, `debug`, `warn`).
+   - To route logs to a file, add a `File` appender in `configs/log4j2.properties` and reference it from the `rootLogger` or application logger.
+
 ## Running the Pipeline
 
 ### Option 1: Run Complete Pipeline (Recommended)
