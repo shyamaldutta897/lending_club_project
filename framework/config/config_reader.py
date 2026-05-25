@@ -5,13 +5,10 @@ from pyspark import SparkConf
 def get_app_config(env):
     """
     Load application configuration for the specified environment.
-    
     Args:
         env (str): Environment name (LOCAL, TEST, PROD) matching a section in application.conf
-    
     Returns:
-        dict: Configuration key-value pairs for the environment
-        
+        dict: Configuration key-value pairs for the environment 
     Raises:
         ValueError: If config file cannot be read or environment not found
         
@@ -48,16 +45,12 @@ def get_app_config(env):
 def get_pyspark_config(env):
     """
     Load PySpark-specific configurations for the specified environment.
-    
     Args:
         env (str): Environment name (LOCAL, TEST, PROD)
-    
     Returns:
-        SparkConf: Spark configuration object ready to use when building a session
-        
+        SparkConf: Spark configuration object ready to use when building a session   
     Raises:
-        ValueError: If pyspark.conf file cannot be found or read
-        
+        ValueError: If pyspark.conf file cannot be found or read  
     Settings include memory allocation, serialization, and execution optimization parameters
     tailored to the environment's resource availability.
     """

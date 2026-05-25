@@ -5,7 +5,7 @@ from framework.config.config_reader import get_app_config, get_pyspark_config
 from pyspark.sql.functions import *
 
 def clean_delinq_data(loan_defaulters_df):
-   print('Cleaning data')
+   print('Cleaning delinquency data...')
    delinq_df=loan_defaulters_df\
                 .select('member_id',
                         'delinq_2_years',
@@ -16,7 +16,7 @@ def clean_delinq_data(loan_defaulters_df):
    return delinq_df
 
 def clean_defaulters_data(loan_defaulters_df):
-    print('Cleaning data')
+    print('Cleaning defaulters data...')
     defaulters_df=loan_defaulters_df\
                         .select('member_id',
                                 'public_record',

@@ -2,7 +2,6 @@
 Format-specific read options for different data source types.
 Used by the generic data reader to configure Spark's read operations.
 """
-
 # CSV read options: header row present, don't infer schema (use explicit schema instead)
 csv_option = {'header': 'true', 'inferSchema': 'false'}
 
@@ -15,13 +14,10 @@ parquet_option = {}
 def get_read_options(format: str):
     """
     Get format-specific read options for the requested data type.
-    
     Args:
-        format (str): Data format - 'csv', 'json', or 'parquet'
-        
+        format (str): Data format - 'csv', 'json', or 'parquet' 
     Returns:
-        dict: Format-specific options for Spark read operation
-        
+        dict: Format-specific options for Spark read operation  
     Raises:
         ValueError: If the format is not supported
     """

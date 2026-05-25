@@ -10,29 +10,8 @@ Each function creates a SQL temporary view with intermediate scores that feed in
 the next stage, creating a chainable pipeline of transformations.
 """
 
-# from configs.calculation_config import custom_spark_confs as params
-# from framework.session.spark_session import create_spark_session
-# from framework.config.config_reader import get_app_config,get_pyspark_config
-# from pipelines.curated import read_processed_data as prd
 
-# spark=create_spark_session('LOCAL')
-
-# members_df=prd.read_members(spark=spark,config=get_app_config('LOCAL'))
-# loans_df=prd.read_loans(spark=spark,config=get_app_config('LOCAL'))
-# loans_repayment_df=prd.read_loan_repayment(spark=spark,config=get_app_config('LOCAL'))
-# loans_delinq_df=prd.read_delinquencies(spark=spark,config=get_app_config('LOCAL'))
-# loans_defaulters_df=prd.read_defaulters(spark=spark,config=get_app_config('LOCAL'))
-
-# prd.register_views(spark,
-#                members_df,
-#                loans_df,
-#                loans_repayment_df,
-#                loans_delinq_df,
-#                loans_defaulters_df
-#                )
-
-
-def create_ph_pts_view(spark, params):
+def create_payment_history_view(spark, params):
     """
     DIMENSION 1: Payment History Scoring (20% weight)
     
@@ -49,7 +28,7 @@ def create_ph_pts_view(spark, params):
        - 0-50% of funded = 500 pts (good)
        - 50%+ of funded = 650 pts (very good)
     
-    Creates temp view: ph_pts (payment history points)
+    Creates temp view: payment_history (payment history points)
     """
     df = spark.sql(f"""
     SELECT c.member_id,
@@ -70,10 +49,10 @@ def create_ph_pts_view(spark, params):
     INNER JOIN loans c ON c.id = p.id
     """)
  
-    df.createOrReplaceTempView("ph_pts")
+    df.createOrReplaceTempView("payment_history")
     return df
 
-def create_ldh_ph_df_view(spark, params):
+def create_defaulters_score_view(spark, params):
     """
     DIMENSION 2: Defaulter History Scoring (45% weight) - HIGHEST WEIGHT
     
@@ -95,7 +74,7 @@ def create_ldh_ph_df_view(spark, params):
     This dimension receives 45% weight because past credit problems are the
     strongest predictor of future loan default.
     
-    Creates temp view: ldh_ph_pts (defaulter/delinquency + payment history points)
+    Creates temp view: defaulters_score (defaulter/delinquency + payment history points)
     """
     df = spark.sql(f"""
     SELECT p.*, 
@@ -125,13 +104,13 @@ def create_ldh_ph_df_view(spark, params):
     END AS enq_pts 
     FROM defaulter_details l 
     INNER JOIN delinq_details d ON d.member_id = l.member_id  
-    INNER JOIN ph_pts p ON p.member_id = l.member_id
+    INNER JOIN payment_history p ON p.member_id = l.member_id
     """)
 
-    df.createOrReplaceTempView('ldh_ph_pts')
+    df.createOrReplaceTempView('defaulters_score')
     return df
 
-def create_fh_ldh_ph_df_view(spark,params):
+def create_overall_member_score_view(spark,params):
     df=spark.sql(f"""
    SELECT ldef.*, 
    CASE 
@@ -185,11 +164,11 @@ def create_fh_ldh_ph_df_view(spark,params):
    WHEN (a.grade) = 'E' AND (a.sub_grade)='E5' THEN ({params['lending_project.very_bad_rated_pts']} * 0.80) 
    WHEN (a.grade) IN ('F', 'G') THEN ({params['lending_project.unacceptable_rated_pts']}) 
    END AS grade_pts 
-   FROM ldh_ph_pts ldef 
+   FROM defaulters_score ldef 
    INNER JOIN loans l ON ldef.member_id = l.member_id 
    INNER JOIN members a ON a.member_id = ldef.member_id
     """)
-    df.createOrReplaceTempView('fh_ldh_ph_pts')
+    df.createOrReplaceTempView('overall_member_score')
     return df 
 
 
@@ -201,7 +180,7 @@ def create_loan_score_view(spark):
                 ((last_payment_pts + total_payment_pts) * 0.20) AS payment_history_pts, 
                 ((delinq_pts + public_records_pts + public_bankruptcies_pts + enq_pts) * 0.45) AS defaulters_history_pts, 
                 ((loan_status_pts + home_pts + credit_limit_pts + grade_pts) * 0.35) AS financial_health_pts 
-                FROM fh_ldh_ph_pts)
+                FROM overall_member_score)
                 
                 select *, 
                         (payment_history_pts+

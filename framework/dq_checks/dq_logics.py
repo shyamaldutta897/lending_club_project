@@ -149,7 +149,6 @@ def null_check(df, column):
 def _failed_rows_for_column(df, column, rule):
     """
     Extract rows that fail a specific validation rule for a given column.
-    
     Returns the filtered DataFrame with only records that violate the rule.
     """
     rule_type = rule["type"]
@@ -208,7 +207,6 @@ def _empty_detailed_failures(df):
 def get_failed_rows_for_rule(df, rule):
     """
     Find all rows that fail a specific validation rule.
-    
     Applies the rule to all its columns and returns a deduplicated DataFrame
     of records that violated at least one check.
     """
@@ -225,7 +223,6 @@ def get_failed_rows_for_rule(df, rule):
 def get_failed_rows_with_details(df, rule):
     """
     Find all rows that fail a validation rule, with detailed failure information.
-    
     Adds metadata columns (rule ID, check type, description, failed column) to enable
     root cause analysis and data remediation efforts.
     """

@@ -29,7 +29,6 @@ def write(df: DataFrame,
     # CSV files need header row for readability
     if file_format == "csv":
         writer = writer.option('header', 'true')
-    
     # Apply partitioning if specified (useful for large datasets)
     if partitionBy:
         writer = writer.partitionBy(*partitionBy)

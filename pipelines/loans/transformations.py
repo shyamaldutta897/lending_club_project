@@ -14,7 +14,7 @@ def clean_loan_details(loan_details_df):
     - Standardize loan purposes to a controlled vocabulary
     - Handle missing values by defaulting to 'other' category
     """
-    print('Cleaning data')
+    print('Cleaning loans data...')
     # Add timestamp for tracking when record was processed
     loan_df_ingest = loan_details_df.withColumn('ingestion_date', current_timestamp())
     

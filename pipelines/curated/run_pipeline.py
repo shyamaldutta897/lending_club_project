@@ -6,9 +6,9 @@ from framework.writers.data_writer import write
 
 
 from pipelines.curated.business_logics_implement import (
-    create_ph_pts_view,
-    create_ldh_ph_df_view,
-    create_fh_ldh_ph_df_view,
+    create_payment_history_view,
+    create_defaulters_score_view,
+    create_overall_member_score_view,
     create_loan_score_view,
     loan_score_final_view
 )
@@ -61,9 +61,9 @@ def run_pipeline():
     print("Executing business logic transformation layers...")
     # 4. Chain the scoring transformations sequentially
     # Each function creates a temp view that the next one depends on
-    create_ph_pts_view(spark, params)                      # Payment history points
-    create_ldh_ph_df_view(spark, params)                   # + Defaulter history points
-    create_fh_ldh_ph_df_view(spark, params)                # + Financial health points
+    create_payment_history_view(spark, params)                      # Payment history points
+    create_defaulters_score_view(spark, params)                   # + Defaulter history points
+    create_overall_member_score_view(spark, params)                # + Financial health points
     create_loan_score_view(spark)                          # Composite scoring
     
     # 5. Retrieve the final scored and graded DataFrame
