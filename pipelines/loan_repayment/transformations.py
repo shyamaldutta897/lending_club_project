@@ -1,4 +1,3 @@
-from framework.readers.data_reader import read_loan_repayments_data
 from framework.session.spark_session import create_spark_session
 from framework.config.config_reader import get_app_config, get_pyspark_config
 
