@@ -777,14 +777,6 @@ To extend or modify the system:
 3. **Add new data source**: Create new pipeline under `pipelines/` following the established pattern
 4. **Change scoring parameters**: Update `configs/calculation_config.py`
 
-## License
-
-Internal use only - Trendy Tech Lending Operations
-
-## Contact
-
-For questions or issues, contact the Data Engineering team.
-
 ---
 
 **Last Updated**: 2026  
