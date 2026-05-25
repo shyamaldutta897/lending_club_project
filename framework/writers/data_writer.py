@@ -21,7 +21,6 @@ def write(df: DataFrame,
     - Applies optional partitioning to improve query performance
     - Logs the output location for tracking and debugging
     """
-    print(f'Writing to location {output_path}')
     writer = df.write\
         .format(file_format)\
         .mode(mode)

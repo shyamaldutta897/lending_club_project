@@ -3,6 +3,7 @@ from framework.session.spark_session import create_spark_session
 from framework.config.config_reader import get_app_config
 from pipelines.curated import read_processed_data as prd
 from framework.writers.data_writer import write
+from framework.logger.logger_file import Log4j
 
 
 from pipelines.curated.business_logics_implement import (
@@ -38,7 +39,12 @@ def run_pipeline():
     spark = create_spark_session('LOCAL')
     app_config = get_app_config('LOCAL')
     
-    print("Reading processed datasets...")
+    logger=Log4j(spark)
+
+    logger.info('Created Spark session')
+
+    logger.info(f'Reading processed data...')
+
     # 2. Load all processed datasets from processed data directory
     # (Previously validated and transformed by individual pipeline scripts)
     members_df = prd.read_members(spark=spark, config=app_config)
@@ -47,7 +53,7 @@ def run_pipeline():
     loans_delinq_df = prd.read_delinquencies(spark=spark, config=app_config)
     loans_defaulters_df = prd.read_defaulters(spark=spark, config=app_config)
 
-    print("Registering base temporary views...")
+    logger.info(f"Registering base temporary views...")
     # 3. Register all DataFrames as temporary SQL views for use in scoring queries
     prd.register_views(
         spark,
@@ -58,7 +64,7 @@ def run_pipeline():
         loans_defaulters_df
     )
 
-    print("Executing business logic transformation layers...")
+    logger.info(f"Executing business logic transformation layers...")
     # 4. Chain the scoring transformations sequentially
     # Each function creates a temp view that the next one depends on
     create_payment_history_view(spark, params)                      # Payment history points
@@ -69,15 +75,15 @@ def run_pipeline():
     # 5. Retrieve the final scored and graded DataFrame
     final_df = loan_score_final_view(spark, params)
     
-    print("Transformation complete. Sample output preview:")
+    logger.info(f"Transformation complete. Sample output preview:")
     final_df.show(5)
     
     # 6. Write the complete graded dataset to output location
     destination_path = app_config["final_data.output.path"]
-    print(f"Writing final dataset to: {destination_path}")
+    logger.info(f"Writing final dataset to: {destination_path}")
     write(df=final_df, file_format='parquet', mode='overwrite', partitionBy=None, output_path=destination_path)
     
-    print("Pipeline executed successfully!")
+    logger.info(f"Pipeline executed successfully!")
 
 # Entry point: ensures script only runs when directly executed, not when imported
 if __name__ == "__main__":

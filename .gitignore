@@ -7,3 +7,4 @@ __pycache__/
 *.tmp
 venv/
 .pytest_cache/
+logs/

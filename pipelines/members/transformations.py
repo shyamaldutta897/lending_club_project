@@ -5,7 +5,6 @@ from framework.config.config_reader import get_app_config, get_pyspark_config
 from pyspark.sql.functions import *
 
 def clean_members_data(members_df):
-    print('Cleaning members data...')
     member_details=members_df.withColumn('ingestion_date',current_timestamp())
     member_details=member_details.dropDuplicates()
     member_details=member_details.withColumn('emp_length',regexp_replace('emp_length',r'[^0-9*]','').cast('int'))

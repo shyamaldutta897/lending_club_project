@@ -1,3 +1,4 @@
+from pathlib import Path
 from pyspark.sql import SparkSession
 from framework.config.config_reader import get_pyspark_config
 from configs.calculation_config import custom_spark_confs
@@ -26,9 +27,18 @@ def create_spark_session(env):
     - Local master with 2 cores for LOCAL environment
     - Hive support for other environments
     """
+    # Point Spark at the repository log4j2 configuration file using a file URI.
+    log4j_path = Path(__file__).resolve().parents[2] / 'configs' / 'log4j2.properties'
+    log4j_uri = log4j_path.as_uri()
+
     builder = SparkSession.builder \
+        .appName('lending_club_app')\
         .config(conf=get_pyspark_config(env))\
-        .config("spark.hadoop.io.native.lib.available", "false")
+        .config("spark.hadoop.io.native.lib.available", "false")\
+        .config('spark.driver.extraJavaOptions',
+                f'-Dlog4j2.configurationFile={log4j_uri}')\
+        .config('spark.executor.extraJavaOptions',
+                f'-Dlog4j2.configurationFile={log4j_uri}')
 
     # Inject custom scoring parameters (point thresholds, weights, etc.)
     for key, val in custom_spark_confs.items():
