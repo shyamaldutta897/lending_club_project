@@ -23,7 +23,9 @@ with open(config_path, 'r') as f:
 
     for rule in dq_rules:
         for table in rule["tables"]:
-            table_task_mapping[table].append(rule)
+            cleaned_rule={k:v for k,v in rule.items() if k!="tables"}
+            table_task_mapping[table].append(cleaned_rule)
+
 
 
 def apply_dq_for_table(df, table_name, key_columns=None):

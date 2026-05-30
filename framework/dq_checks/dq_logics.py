@@ -191,7 +191,8 @@ def _failed_rows_for_column(df, column, rule):
 
 def _existing_rule_columns(df, rule):
     """Return only the columns from the rule that actually exist in the DataFrame."""
-    return [c for c in rule.get("columns", []) if c in df.columns]
+    valid_fields=[c for c in rule.get("columns", []) if c in df.columns]
+    return valid_fields
 
 
 def _empty_detailed_failures(df):
