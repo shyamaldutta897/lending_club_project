@@ -14,11 +14,11 @@ from pyspark.sql.functions import *
 
 
 spark = create_spark_session("LOCAL")
-file_path = get_app_config("LOCAL")["members.file.path"]
+file_path = get_app_config("LOCAL")["members.output.clean.path"]
 schema=get_members_schema()
-options=get_read_options("csv")
+options=get_read_options("delta")
 
-df = read(spark, "csv", file_path, schema, options)
+df = read(spark, "delta", file_path, None, options)
 
 # df_check=df.select('member_id', 'delinq_2_years')\
 #            .withColumn('delinq_2yrs_check',
@@ -32,10 +32,10 @@ rule={'rule_id': 'R5',
 'check': 'Accpeted length of field value is 5', 
 'threshold': 0.98}
 
-df_dq_check=dq_logics.get_failed_rows_for_rule(df,rule)
+#df_dq_check=dq_logics.get_failed_rows_for_rule(df,rule)
 
 output_path = get_app_config("LOCAL")["test.output.file.path"]
 
 #df_dq_check.show(5)
-
-write(df_dq_check, "csv","overwrite",None, output_path)
+df=df.limit(100)
+write(df, "csv","overwrite",None, output_path)

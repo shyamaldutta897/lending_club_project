@@ -21,11 +21,13 @@ def create_spark_session(env):
         SparkSession: Configured Spark session ready for data processing
         
     The session includes:
+    - Initializing Spark with Deltalake 3.2
     - Environment-specific Spark configurations from pyspark.conf
     - Custom scoring parameters injected from calculation_config
     - Hadoop native lib disabled to prevent Windows compatibility issues
     - Local master with 2 cores for LOCAL environment
     - Hive support for other environments
+    - Enables logging with log4j2 support
     """
     # Point Spark at the repository log4j2 configuration file using a file URI.
     log4j_path = Path(__file__).resolve().parents[2] / 'configs' / 'log4j2.properties'
@@ -38,7 +40,10 @@ def create_spark_session(env):
         .config('spark.driver.extraJavaOptions',
                 f'-Dlog4j2.configurationFile={log4j_uri}')\
         .config('spark.executor.extraJavaOptions',
-                f'-Dlog4j2.configurationFile={log4j_uri}')
+                f'-Dlog4j2.configurationFile={log4j_uri}')\
+        .config("spark.jars.packages", "io.delta:delta-spark_2.12:3.2.0") \
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
 
     # Inject custom scoring parameters (point thresholds, weights, etc.)
     for key, val in custom_spark_confs.items():
@@ -49,5 +54,6 @@ def create_spark_session(env):
         builder = builder.master("local[2]")
     else:
         builder = builder.enableHiveSupport()
-        
+
     return builder.getOrCreate()
+

@@ -7,6 +7,7 @@ from pipelines.members.transformations import clean_members_data
 from framework.writers.data_writer import write
 from framework.dq_checks.dq_orchestrator import apply_dq_for_table
 from framework.logger.logger_file import Log4j
+from framework.scd.scd_logics import write_scd2
 
 # Initialize Spark session for data processing
 spark = create_spark_session("LOCAL")
@@ -29,10 +30,11 @@ member_df = read(spark,
 logger.info('Segregating bad data from raw files')
 # Apply data quality checks to identify valid and invalid records
 # Returns three DataFrames: clean (passed QC), bad (failed QC), detailed_bad (failures with reason)
+pk=["member_id"]
 clean_df, bad_df, detailed_bad_df = apply_dq_for_table(
     member_df,
     table_name="member_details",
-    key_columns=["member_id"]
+    key_columns=pk
 )
 
 logger.info('Preparing data for processed layer')
@@ -40,12 +42,20 @@ logger.info('Preparing data for processed layer')
 member_transformed_df = clean_members_data(clean_df)
 
 logger.info(f'Writing clean data to location {get_app_config("LOCAL")["members.output.clean.path"]}')
-# Write processed data to output location (clean records)
-write(df=member_transformed_df,
-      file_format="csv",
-      mode="overwrite",
-      partitionBy=None,
-      output_path=get_app_config("LOCAL")["members.output.clean.path"])
+
+tracking_cols=[col for col in get_members_schema() if col not in pk]
+#scd2 test
+write_scd2(incoming_df=member_transformed_df,
+           primary_key=pk,
+           target_location=get_app_config("LOCAL")["members.output.clean.path"],
+           tracking_cols=tracking_cols
+           )
+# # Write processed data to output location (clean records)
+# write(df=member_transformed_df,
+#       file_format="csv",
+#       mode="overwrite",
+#       partitionBy=None,
+#       output_path=get_app_config("LOCAL")["members.output.clean.path"])
 
 logger.info(f'Writing DQ rejected data to location {get_app_config("LOCAL")["members.output.bad.path"]}')
 # Archive failed records for manual investigation and remediation
