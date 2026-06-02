@@ -24,10 +24,13 @@ def write(df: DataFrame,
     writer = df.write\
         .format(file_format)\
         .mode(mode)
+
     
     # CSV files need header row for readability
     if file_format == "csv":
         writer = writer.option('header', 'true')
+    if file_format == "delta":
+        writer = writer.option('mergeSchema', 'true')
     # Apply partitioning if specified (useful for large datasets)
     if partitionBy:
         writer = writer.partitionBy(*partitionBy)

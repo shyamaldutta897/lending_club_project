@@ -14,11 +14,11 @@ from pyspark.sql.functions import *
 
 
 spark = create_spark_session("LOCAL")
-file_path = get_app_config("LOCAL")["members.file.path"]
+file_path = get_app_config("LOCAL")["members.output.clean.path"]
 schema=get_members_schema()
-options=get_read_options("csv")
+options=get_read_options("delta")
 
-df = read(spark, "csv", file_path, schema, options)
+df = read(spark, "delta", file_path, None, options)
 
 # df_check=df.select('member_id', 'delinq_2_years')\
 #            .withColumn('delinq_2yrs_check',
@@ -26,16 +26,16 @@ df = read(spark, "csv", file_path, schema, options)
 #                        .when (col('delinq_2_years').cast('int').isNull(), 'garbage value')
 #                        .otherwise('all good'))
 
-rule={'rule_id': 'R5', 
-'columns': ['zip_code'], 
-'type': 'zip_code_check', 
-'check': 'Accpeted length of field value is 5', 
-'threshold': 0.98}
+# rule={'rule_id': 'R5', 
+# 'columns': ['zip_code'], 
+# 'type': 'zip_code_check', 
+# 'check': 'Accpeted length of field value is 5', 
+# 'threshold': 0.98}
 
-df_dq_check=dq_logics.get_failed_rows_for_rule(df,rule)
+#df_dq_check=dq_logics.get_failed_rows_for_rule(df,rule)
 
 output_path = get_app_config("LOCAL")["test.output.file.path"]
 
 #df_dq_check.show(5)
-
-write(df_dq_check, "csv","overwrite",None, output_path)
+df=df.filter(col('member_id').isin('f9cf1cb60634f3b5d263ca8b2e2db9ffa646a003bc53709423b65490ea294734','b8a5d3f10927c4e65b81a029fd3c7e4e1a629b3504fc819d273a5bc419d2e46a','b8a5d3f10927c4e65z81a029fd3c7e4x1a629b3504fu819d273a5bc419e2e46b','c8a5d3f10927c4e65z81a029fd3c7e4x1a629b3504fu819d273a5bc419e2e46b')).limit(100)
+write(df, "csv","overwrite",None, output_path)

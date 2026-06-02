@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "0272660ddc6ba21eace324a3b35c353a35df4980f5ac89062fc1a8addf074573"
+            "sha256": "9c2ca30fee804936651fc80fc34ad3e4ade0a45eaf0e7a9e62f138c3e707cb17"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -23,6 +23,23 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6'",
             "version": "==0.4.6"
+        },
+        "delta-spark": {
+            "hashes": [
+                "sha256:641967828e47c64805f8c746513da80bea24b5f19b069cdcf64561cd3692e11d",
+                "sha256:c4ff3fa7218e58a702cb71eb64384b0005c4d6f0bbdd0fe0b38a53564d946e09"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.6'",
+            "version": "==3.2.0"
+        },
+        "importlib-metadata": {
+            "hashes": [
+                "sha256:2d21d1cc5a017bd0559e36150c21c830ab1dc304dedd1b7ea85d20f45ef3edd7",
+                "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc"
+            ],
+            "markers": "python_version >= '3.10'",
+            "version": "==9.0.0"
         },
         "iniconfig": {
             "hashes": [
@@ -79,6 +96,14 @@
             "index": "pypi",
             "markers": "python_version >= '3.10'",
             "version": "==9.0.3"
+        },
+        "zipp": {
+            "hashes": [
+                "sha256:25ad4e16390cd314347dd8f1de67a2ac538ae658ed4ab9db16029c07c188e97f",
+                "sha256:4cb57381f544315db7688e976e922a2b18cdb513d21cc194eb42232ba2a3e602"
+            ],
+            "markers": "python_version >= '3.10'",
+            "version": "==4.1.0"
         }
     },
     "develop": {
