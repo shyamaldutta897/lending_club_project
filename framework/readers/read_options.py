@@ -14,6 +14,9 @@ parquet_option = {'mergeSchema':'true'}
 # Delta read options: Similar to Parquet, delta format is self-describing as well, no additional options needed
 delta_option={'mergeSchema':'true'}
 
+# Delta read options: Similar to Parquet, delta format is self-describing as well, no additional options needed
+delta_option={}
+
 def get_read_options(format: str):
     """
     Get format-specific read options for the requested data type.
