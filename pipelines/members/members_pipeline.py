@@ -20,12 +20,14 @@ logger.info('Created Spark session')
 logger.info(f'Reading data from loacation {get_app_config("LOCAL")["members.file.path"]}')
 
 # Load raw member data with schema validation
-file_format='csv'
+raw_file_format=get_app_config("LOCAL")["raw_file_format"]
+processed_file_format=get_app_config("LOCAL")["processed_file_format"]
+
 member_df = read(spark=spark,
-                 format=file_format,
+                 format=raw_file_format,
                  file_path=get_app_config("LOCAL")["members.file.path"],
                  schema=get_members_schema(),
-                 options=get_read_options(file_format))
+                 options=get_read_options(raw_file_format))
 
 
 
@@ -49,11 +51,11 @@ write_scd2(incoming_df=clean_df,
            )
 logger.info(f'Clean data has been written to location {get_app_config("LOCAL")["members.output.clean.path"]}')
 
-file_format='delta'
+
 clean_df_scd2=read(spark=spark,
-                   format=file_format,
+                   format=processed_file_format,
                    file_path=get_app_config("LOCAL")["members.output.clean.path"],
-                   options=get_read_options(file_format)
+                   options=get_read_options(processed_file_format)
                    )
 
 clean_df_current=clean_df_scd2.filter(col('is_current')==True)
@@ -63,9 +65,9 @@ logger.info('Preparing data for processed layer')
 member_transformed_df = clean_members_data(clean_df_current)
 
 logger.info(f'Writing data to processed location {get_app_config("LOCAL")["members.output.processed.path"]}')
-file_format='delta'
+
 write(df=member_transformed_df,
-      file_format=file_format,
+      file_format=processed_file_format,
       mode='overwrite',
       partitionBy=None,
       output_path=get_app_config("LOCAL")["members.output.processed.path"]
@@ -74,7 +76,7 @@ write(df=member_transformed_df,
 logger.info(f'Writing DQ rejected data to location {get_app_config("LOCAL")["members.output.bad.path"]}')
 # Archive failed records for manual investigation and remediation
 write(df=detailed_bad_df,
-      file_format=file_format,
+      file_format=processed_file_format,
       mode="overwrite",
       partitionBy=None,
       output_path=get_app_config("LOCAL")["members.output.bad.path"])
