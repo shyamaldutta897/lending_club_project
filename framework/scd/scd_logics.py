@@ -33,37 +33,38 @@ def write_scd2(incoming_df,primary_key,target_location,tracking_cols):
         - valid_to: Timestamp until which the record version is valid
         - is_current: Flag to identify the latest active record version
     """
-    absolute_taregt_path=os.path.abspath(target_location)
+    absolute_target_path=os.path.abspath(target_location)
     
     spark=create_spark_session('LOCAL')
 
-    if not DeltaTable.isDeltaTable(spark,absolute_taregt_path):
-        print(f'Initializing table at {absolute_taregt_path}')
+    if not DeltaTable.isDeltaTable(spark,absolute_target_path):
+        print(f'Initializing table at {absolute_target_path}')
         # Add SCD metadata columns while creating the table for the first load.
         # valid_to is converted to timestamp since Parquet drops NullType fields.
         df=incoming_df.withColumn('valid_from',current_timestamp())\
                       .withColumn('valid_to',lit(None).cast('timestamp'))\
-                      .withColumn('is_current',lit(True))
+                      .withColumn('is_current',lit(True))\
+                      .withColumn('is_deleted_in_source',lit(False))
                       
 
-        write(df,'delta','overwrite',None,absolute_taregt_path)
+        write(df,'delta','overwrite',None,absolute_target_path)
 
         return # End the function after initial table creation.
     
-    print(f'Applying MERGE INTO to {absolute_taregt_path}')
+    print(f'Applying MERGE INTO to {absolute_target_path}')
 
     file_format="delta"
     read_options=get_read_options(file_format)
 
     # Read target data and expose only current records for comparison.
-    target_df=read(spark,"delta",absolute_taregt_path,None,read_options)
+    target_df=read(spark,"delta",absolute_target_path,None,read_options)
     target_df.filter(col('is_current')==True).createOrReplaceTempView('target_view')
 
     # Register incoming data so the staging SQL can compare source and target rows.
     incoming_df.createOrReplaceTempView('incoming_view')
 
     # Exclude SCD metadata columns from business-column comparison.
-    exclude_cols=['valid_from','valid_to','is_current']
+    exclude_cols=['valid_from','valid_to','is_current','is_deleted_in_source']
     tracking_cols=[c for c in tracking_cols if c not in exclude_cols]
     
 
@@ -73,24 +74,26 @@ def write_scd2(incoming_df,primary_key,target_location,tracking_cols):
     change_condition=" OR ".join([f"incoming.{col} != target.{col}" for col in tracking_cols])
 
     # Define insert column/value lists for the MERGE INTO statement.
-    all_columns=[*tracking_cols,'valid_from','valid_to','is_current']
+    all_columns=[*tracking_cols,'valid_from','valid_to','is_current','is_deleted_in_source']
     insert_columns=",".join(all_columns)
     insert_values=",".join(f"source.{c}" for c in all_columns)
 
     print(f'scd tracking cols:{tracking_cols}')
 
-    # Stage two kinds of rows:
+    # Stage three kinds of rows:
     # 1. New current rows for brand-new records or changed records.
     # 2. Old current rows that should be expired when a change is detected.
+    # 3. Rows that are deleted in source but exists in target
     # 3. For changed records setting primary key as null so that they can be appended along with the new records
     # 4. For old records keeping the primary key available so that using merge into these records can be updated.
-    # 5. Left side is for new and changed records, right for old ones.
+    # 5. 1st part is for new and changed records, 2nd part for old records in target, 3rd part for deleted records in source that exist in target.
     staging_query=f"""
                 SELECT {incoming_cols}, 
                 current_timestamp() as valid_from,
                 NULL as valid_to,
-                true as is_current
-                ,CASE WHEN
+                true as is_current,
+                False as is_deleted_in_source,
+                CASE WHEN
                     incoming.{primary_key} IS NOT NULL THEN NULL 
                     ELSE incoming.{primary_key} END  as merge_key
                 FROM incoming_view incoming
@@ -103,13 +106,29 @@ def write_scd2(incoming_df,primary_key,target_location,tracking_cols):
                 SELECT {target_cols},
                 target.valid_from,
                 current_timestamp() as valid_to,
-                False as is_current 
-                ,target.{primary_key} as merge_key
+                False as is_current,
+                False as is_deleted_in_source,
+                target.{primary_key} as merge_key
                 FROM target_view target
                 INNER JOIN incoming_view incoming ON
                 target.{primary_key}=incoming.{primary_key}
                 WHERE target.is_current=True
                 AND ({change_condition})
+
+                UNION ALL
+
+                SELECT {target_cols},
+                target.valid_from,
+                current_timestamp() as valid_to,
+                true as is_current,
+                true as is_deleted_in_source,
+                target.{primary_key} as merge_key
+                FROM target_view target
+                LEFT JOIN incoming_view incoming 
+                ON target.{primary_key}=incoming.{primary_key}
+                WHERE target.is_current=True
+                AND incoming.{primary_key} IS NULL
+
                 """
     
     staging_df=spark.sql(staging_query)
@@ -119,7 +138,7 @@ def write_scd2(incoming_df,primary_key,target_location,tracking_cols):
     # Use the staged rows as the source for Delta MERGE.
     spark.sql(staging_query).createOrReplaceTempView('final_view')
     merge_df=spark.sql(f"""
-                MERGE INTO delta.`{absolute_taregt_path}` AS target
+                MERGE INTO delta.`{absolute_target_path}` AS target
                 USING final_view as source
                 on target.{primary_key}=source.merge_key
                 AND target.is_current=true
@@ -127,7 +146,8 @@ def write_scd2(incoming_df,primary_key,target_location,tracking_cols):
                 WHEN MATCHED THEN
                 UPDATE SET
                 target.valid_to=current_timestamp(),
-                target.is_current=false
+                target.is_current=false,
+                target.is_deleted_in_source=false
 
                 WHEN NOT MATCHED THEN
                 INSERT({insert_columns})
