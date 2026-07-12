@@ -110,19 +110,22 @@ def write_scd2(incoming_df,primary_key,target_location,tracking_cols):
                 False as is_deleted_in_source,
                 target.{primary_key} as merge_key
                 FROM target_view target
-                INNER JOIN incoming_view incoming ON
+                LEFT JOIN incoming_view incoming ON
                 target.{primary_key}=incoming.{primary_key}
                 WHERE target.is_current=True
                 AND ({change_condition})
+                AND incoming.{primary_key} IS NOT NULL
 
                 UNION ALL
 
                 SELECT {target_cols},
                 target.valid_from,
                 current_timestamp() as valid_to,
-                true as is_current,
-                true as is_deleted_in_source,
-                target.{primary_key} as merge_key
+                False as is_current,
+                True as is_deleted_in_source,
+                CASE WHEN
+                    target.{primary_key} IS NOT NULL THEN NULL 
+                    ELSE target.{primary_key} END  as merge_key
                 FROM target_view target
                 LEFT JOIN incoming_view incoming 
                 ON target.{primary_key}=incoming.{primary_key}
