@@ -45,7 +45,7 @@ logger.info('Enabling SCD2')
 
 tracking_cols=[col for col in clean_df.columns if col]
 write_scd2(incoming_df=clean_df,
-           primary_key=pk[0],
+           primary_key=pk,
            target_location=get_app_config("LOCAL")["members.output.clean.path"],
            tracking_cols=tracking_cols
            )
